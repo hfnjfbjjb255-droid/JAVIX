@@ -78,24 +78,6 @@ jobs:
           grep -q 'dev.flutter.flutter-gradle-plugin' android/app/build.gradle
           sed -i 's/gradle-[0-9.]*-bin.zip/gradle-8.14.3-bin.zip/' android/gradle/wrapper/gradle-wrapper.properties
 
-      - name: Create Gradle wrapper outside JAVIX project
-        shell: bash
-        run: |
-          set -euo pipefail
-          cd "$PROJECT_DIR"
-          rm -rf /tmp/javix-wrapper
-          mkdir -p /tmp/javix-wrapper
-          cd /tmp/javix-wrapper
-          printf 'rootProject.name = "wrapper-generator"\n' > settings.gradle
-          printf 'tasks.register("noop")\n' > build.gradle
-          gradle wrapper --gradle-version 8.14.3 --distribution-type bin
-          cp gradlew "$GITHUB_WORKSPACE/$PROJECT_DIR/android/gradlew"
-          mkdir -p "$GITHUB_WORKSPACE/$PROJECT_DIR/android/gradle/wrapper"
-          cp gradle/wrapper/gradle-wrapper.jar "$GITHUB_WORKSPACE/$PROJECT_DIR/android/gradle/wrapper/gradle-wrapper.jar"
-          cp gradle/wrapper/gradle-wrapper.properties "$GITHUB_WORKSPACE/$PROJECT_DIR/android/gradle/wrapper/gradle-wrapper.properties"
-          chmod +x "$GITHUB_WORKSPACE/$PROJECT_DIR/android/gradlew"
-          cd "$GITHUB_WORKSPACE/$PROJECT_DIR/android"
-          ./gradlew --version
 
       - name: Auto repair and build
         shell: bash
