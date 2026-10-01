@@ -33,11 +33,8 @@ jobs:
         shell: bash
         run: |
           set -e
-
-          # First look for pubspec.yaml anywhere in the repository.
           PROJECT_DIR="$(find . -name pubspec.yaml -type f -not -path './.git/*' -print -quit | xargs -r dirname)"
 
-          # If the project was uploaded as a ZIP, extract it and look again.
           if [ -z "$PROJECT_DIR" ]; then
             ZIP_FILE="$(find . -maxdepth 3 -type f -iname '*.zip' -not -path './.git/*' -print -quit)"
             if [ -n "$ZIP_FILE" ]; then
@@ -48,29 +45,21 @@ jobs:
           fi
 
           if [ -z "$PROJECT_DIR" ]; then
-            echo "ERROR: Could not find pubspec.yaml."
-            echo "Make sure the Flutter project files or the project ZIP are in the repository."
+            echo "ERROR: pubspec.yaml not found"
             exit 1
           fi
 
-          # Convert ./something to something; keep . for the repository root.
           PROJECT_DIR="${PROJECT_DIR#./}"
           [ -n "$PROJECT_DIR" ] || PROJECT_DIR="."
-
-          echo "Flutter project directory: $PROJECT_DIR"
           echo "PROJECT_DIR=$PROJECT_DIR" >> "$GITHUB_ENV"
 
       - name: Get dependencies
-        shell: bash
         run: |
-          set -e
           cd "$PROJECT_DIR"
           flutter pub get
 
       - name: Build APK
-        shell: bash
         run: |
-          set -e
           cd "$PROJECT_DIR"
           flutter build apk --release
 
