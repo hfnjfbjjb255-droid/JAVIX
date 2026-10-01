@@ -1,0 +1,85 @@
+name: Build JAVIX APK
+
+on:
+  push:
+    branches:
+      - main
+      - master
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: gradle
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.47.2'
+          channel: stable
+          cache: true
+
+      - name: Find Flutter project
+        shell: bash
+        run: |
+          set -e
+
+          # First look for pubspec.yaml anywhere in the repository.
+          PROJECT_DIR="$(find . -name pubspec.yaml -type f -not -path './.git/*' -print -quit | xargs -r dirname)"
+
+          # If the project was uploaded as a ZIP, extract it and look again.
+          if [ -z "$PROJECT_DIR" ]; then
+            ZIP_FILE="$(find . -maxdepth 3 -type f -iname '*.zip' -not -path './.git/*' -print -quit)"
+            if [ -n "$ZIP_FILE" ]; then
+              mkdir -p .flutter_project
+              unzip -o "$ZIP_FILE" -d .flutter_project
+              PROJECT_DIR="$(find .flutter_project -name pubspec.yaml -type f -print -quit | xargs -r dirname)"
+            fi
+          fi
+
+          if [ -z "$PROJECT_DIR" ]; then
+            echo "ERROR: Could not find pubspec.yaml."
+            echo "Make sure the Flutter project files or the project ZIP are in the repository."
+            exit 1
+          fi
+
+          # Convert ./something to something; keep . for the repository root.
+          PROJECT_DIR="${PROJECT_DIR#./}"
+          [ -n "$PROJECT_DIR" ] || PROJECT_DIR="."
+
+          echo "Flutter project directory: $PROJECT_DIR"
+          echo "PROJECT_DIR=$PROJECT_DIR" >> "$GITHUB_ENV"
+
+      - name: Get dependencies
+        shell: bash
+        run: |
+          set -e
+          cd "$PROJECT_DIR"
+          flutter pub get
+
+      - name: Build APK
+        shell: bash
+        run: |
+          set -e
+          cd "$PROJECT_DIR"
+          flutter build apk --release
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: JAVIX-APK
+          path: |
+            **/build/app/outputs/flutter-apk/*.apk
+            **/build/app/outputs/apk/release/*.apk
+          if-no-files-found: error
+          retention-days: 7
