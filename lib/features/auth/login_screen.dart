@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../widgets/gold_card.dart';
 import 'package:provider/provider.dart';
 
 import '../../core/localization/strings_ar.dart';
