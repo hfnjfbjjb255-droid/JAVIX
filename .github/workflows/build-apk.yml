@@ -153,13 +153,6 @@ jobs:
 
           cd "$PROJECT_DIR/android"
 
-          if [ ! -f gradlew ]; then
-            echo "Generating Gradle wrapper..."
-
-            gradle wrapper \
-              --gradle-version 8.11.1 \
-              --distribution-type bin
-          fi
 
           chmod +x gradlew
 
