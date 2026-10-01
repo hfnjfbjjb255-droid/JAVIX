@@ -11,7 +11,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout
+      - name: Checkout repository
         uses: actions/checkout@v4
 
       - name: Setup Java
@@ -23,18 +23,98 @@ jobs:
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.47.3'
+          flutter-version: '3.47.2'
           channel: stable
           cache: true
 
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install Android SDK
+        run: |
+          sdkmanager "platforms;android-35" "build-tools;35.0.0"
+          yes | sdkmanager --licenses || true
+
+      - name: Extract JAVIX project
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          ZIP_FILE="JAVIX_FULL_READY.zip"
+
+          if [ ! -f "$ZIP_FILE" ]; then
+            echo "ERROR: $ZIP_FILE was not found"
+            echo "Files in repository:"
+            find . -maxdepth 2 -type f -print
+            exit 1
+          fi
+
+          rm -rf JAVIX_PROJECT
+          mkdir -p JAVIX_PROJECT
+
+          unzip -oq "$ZIP_FILE" -d JAVIX_PROJECT
+
+          echo "Extracted files:"
+          find JAVIX_PROJECT -maxdepth 3 -type f | head -200
+
+          PROJECT_DIR="$(find JAVIX_PROJECT -type f -name pubspec.yaml -print -quit | xargs -r dirname)"
+
+          if [ -z "$PROJECT_DIR" ]; then
+            echo "ERROR: pubspec.yaml was not found"
+            exit 1
+          fi
+
+          echo "Flutter project: $PROJECT_DIR"
+          echo "PROJECT_DIR=$PROJECT_DIR" >> "$GITHUB_ENV"
+
       - name: Get dependencies
-        run: flutter pub get
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd "$PROJECT_DIR"
+          test -f pubspec.yaml
+          flutter pub get
+
+      - name: Prepare Android
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd "$PROJECT_DIR"
+
+          if [ ! -f android/gradlew ]; then
+            flutter create --platforms=android --org com.javix --project-name javix .
+          fi
+
+          chmod +x android/gradlew
 
       - name: Build APK
-        run: flutter build apk --release
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd "$PROJECT_DIR"
+
+          flutter build apk \
+            --release \
+            --target-platform android-arm64
+
+      - name: Verify APK
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          APK="$PROJECT_DIR/build/app/outputs/flutter-apk/app-release.apk"
+
+          if [ ! -f "$APK" ]; then
+            echo "ERROR: APK was not created"
+            exit 1
+          fi
+
+          ls -lh "$APK"
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: JAVIX-APK
-          path: build/app/outputs/flutter-apk/app-release.apk
+          path: ${{ env.PROJECT_DIR }}/build/app/outputs/flutter-apk/app-release.apk
+          if-no-files-found: error
+          retention-days: 7
