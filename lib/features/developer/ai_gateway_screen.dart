@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../widgets/gold_card.dart';
 import 'package:provider/provider.dart';
 
 import '../../core/theme/javix_theme.dart';
@@ -56,5 +57,6 @@ class _AiGatewayScreenState extends State<AiGatewayScreen> {
         if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('تم حفظ إعدادات بوابة AI')));
       }, icon: const Icon(Icons.save, color: Colors.black), label: const Text('حفظ', style: TextStyle(color: Colors.black)), style: FilledButton.styleFrom(backgroundColor: JavixColors.gold, padding: const EdgeInsets.all(14))),
     ],
+  );
   );
 }

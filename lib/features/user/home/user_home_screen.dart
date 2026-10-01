@@ -178,6 +178,6 @@ class _ProfileTab extends StatelessWidget {
       ListTile(leading: const Icon(Icons.security_outlined, color: JavixColors.gold), title: const Text('الأذونات'), subtitle: const Text('إدارة أذونات Android'), onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const PermissionsScreen()))),
       ListTile(leading: const Icon(Icons.devices_other, color: JavixColors.gold), title: const Text('الأجهزة المنزلية'), subtitle: const Text('الأجهزة المحلية وMQTT'), onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const DevicesScreen()))),
       ListTile(leading: const Icon(Icons.logout, color: JavixColors.textSecondary), title: const Text('تسجيل الخروج'), onTap: auth.logout),
-    ];
+    ]);
   }
 }
