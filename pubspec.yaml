@@ -1,0 +1,32 @@
+name: javix
+description: Javix smart assistant - User & Developer editions
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.3.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_localizations:
+    sdk: flutter
+  provider: ^6.1.2
+  shared_preferences: ^2.2.3
+  intl: any
+  flutter_local_notifications: ^17.2.1
+  timezone: ^0.9.4
+  speech_to_text: ^7.0.0
+  flutter_tts: ^4.1.0
+  camera: ^0.11.0+2
+  google_mlkit_text_recognition: ^0.13.1
+  google_mlkit_object_detection: ^0.13.0
+  mqtt_client: ^10.5.1
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^4.0.0
+
+flutter:
+  uses-material-design: true
