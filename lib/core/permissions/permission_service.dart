@@ -86,7 +86,12 @@ class PermissionService extends ChangeNotifier {
       _role = role == 'developer' ? Role.developer : Role.user;
       _userId = (account['id'] ?? account['email'] ?? account['phone'] ?? userId).toString();
     } else {
-      throw StateError('الحسابات الحقيقية تحتاج JARVIS_BACKEND_URL.');
+      final localUser = userId.trim();
+      if (localUser.isEmpty) {
+        throw StateError('أدخل اسم المستخدم.');
+      }
+      _role = Role.user;
+      _userId = localUser;
     }
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(AppConstants.prefRole, _role.edition.name);
