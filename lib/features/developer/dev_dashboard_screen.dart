@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 
 import '../../core/localization/strings_ar.dart';
 import '../../core/permissions/permission_service.dart';
+import '../../core/permissions/role.dart';
 import '../../core/theme/javix_theme.dart';
 import '../../widgets/gold_card.dart';
 import 'logs/log_viewer_screen.dart';

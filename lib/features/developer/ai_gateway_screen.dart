@@ -1,3 +1,4 @@
+import '../../widgets/gold_card.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -59,7 +60,7 @@ class _AiGatewayScreenState extends State<AiGatewayScreen> {
       const SizedBox(height: 10),
       TextField(controller: _model, decoration: const InputDecoration(labelText: 'نموذج المحادثة', hintText: 'gpt-5.6-luna')),
       const SizedBox(height: 10),
-      const GoldCard(child: Text('حدود المستخدم المجانية: 7 صور و3 فيديوهات يومياً. حساب المطور يتجاوز هذه الحدود في النسخة التجريبية.', style: TextStyle(color: JavixColors.textSecondary))),
+      GoldCard(child: Text('حدود المستخدم المجانية: 7 صور و3 فيديوهات يومياً. حساب المطور يتجاوز هذه الحدود في النسخة التجريبية.', style: TextStyle(color: JavixColors.textSecondary))),
       const SizedBox(height: 16),
       FilledButton.icon(onPressed: () async {
         await context.read<AiService>().saveConfig(baseUrl: _base.text, apiKey: _key.text.trim().isEmpty ? null : _key.text, imagePath: _image.text, videoPath: _video.text, chatPath: _chat.text, model: _model.text);
