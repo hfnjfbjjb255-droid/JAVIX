@@ -8,6 +8,7 @@ class AppConstants {
 
   static const String prefRole = 'javix_role';
   static const String prefUserId = 'javix_user_id';
+  static const String prefLocalUsername = 'jarvis_local_username';
   static const String prefReadAloud = 'javix_read_aloud';
   static const String prefLeadMinutes = 'javix_lead_minutes';
   static const String prefReminders = 'javix_reminders';

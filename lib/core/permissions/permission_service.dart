@@ -60,61 +60,87 @@ class PermissionService extends ChangeNotifier {
 
   /// Real auth is delegated to the JARVIS backend when configured.
   /// The local developer code remains available only for the explicit demo build.
-  Future<bool> login({String userId = '', String? devCode, String? password, String? phone, String? otp, String provider = 'password'}) async {
+  Future<bool> login({
+    String userId = '',
+    String? devCode,
+    String? password,
+    String? phone,
+    String? otp,
+    String provider = 'password',
+  }) async {
     final normalizedCode = devCode?.trim() ?? '';
+
     final developerLogin = AppConstants.developerBuild &&
         AppConstants.devAccessCode.isNotEmpty &&
         normalizedCode.isNotEmpty &&
         normalizedCode == AppConstants.devAccessCode;
+
     if (developerLogin) {
       _role = Role.developer;
       _userId = 'Developer';
-    } else if (BackendService.instance.configured) {
-      final body = <String, dynamic>{
-        'provider': provider,
-        'identifier': userId.trim(),
-        'password': password ?? '',
-        'phone': phone ?? '',
-        'otp': otp ?? '',
-      };
-      final result = await BackendService.instance.post('/auth/login', body, auth: false);
-      final token = result['token']?.toString() ?? '';
-      final account = result['user'] is Map ? Map<String, dynamic>.from(result['user']) : <String, dynamic>{};
-      if (token.isEmpty) throw StateError('لم يرجع الخادم جلسة دخول صالحة.');
-      await BackendService.instance.setToken(token);
-      final role = account['role']?.toString() ?? 'user';
-      _role = role == 'developer' ? Role.developer : Role.user;
-      _userId = (account['id'] ?? account['email'] ?? account['phone'] ?? userId).toString();
     } else {
-      final localUser = userId.trim();
-      if (localUser.isEmpty) {
+      final username = userId.trim();
+
+      if (username.isEmpty) {
         throw StateError('أدخل اسم المستخدم.');
       }
+
+      final prefs = await SharedPreferences.getInstance();
+      final savedUsername =
+          prefs.getString(AppConstants.prefLocalUsername);
+
+      if (savedUsername == null || savedUsername.isEmpty) {
+        throw StateError('لا يوجد حساب مسجل. أنشئ حسابًا أولاً.');
+      }
+
+      if (savedUsername.toLowerCase() != username.toLowerCase()) {
+        throw StateError('اسم المستخدم غير صحيح.');
+      }
+
       _role = Role.user;
-      _userId = localUser;
+      _userId = savedUsername;
     }
+
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(AppConstants.prefRole, _role.edition.name);
     await prefs.setString(AppConstants.prefUserId, _userId!);
+
     LogViewerScreen.log('login: ${_role.edition.name} ($_userId)');
     notifyListeners();
     return true;
   }
 
-  Future<bool> register({required String email, required String password, String? displayName}) async {
-    if (!BackendService.instance.configured) throw StateError('الخادم غير مهيأ.');
-    final result = await BackendService.instance.post('/auth/register', {
-      'email': email.trim(), 'password': password, 'displayName': displayName?.trim() ?? '',
-    }, auth: false);
-    final token = result['token']?.toString() ?? '';
-    if (token.isEmpty) throw StateError('فشل إنشاء الحساب.');
-    await BackendService.instance.setToken(token);
-    final account = result['user'] is Map ? Map<String, dynamic>.from(result['user']) : <String, dynamic>{};
-    _role = Role.user;
-    _userId = (account['id'] ?? account['email'] ?? email).toString();
+  Future<bool> register({
+    required String email,
+    required String password,
+    String? displayName,
+  }) async {
+    final username = (displayName ?? email).trim();
+
+    if (username.isEmpty) {
+      throw StateError('أدخل اسم المستخدم.');
+    }
+
     final prefs = await SharedPreferences.getInstance();
+    final existing =
+        prefs.getString(AppConstants.prefLocalUsername);
+
+    if (existing != null && existing.isNotEmpty) {
+      throw StateError('يوجد حساب مسجل على هذا الجهاز.');
+    }
+
+    await prefs.setString(
+      AppConstants.prefLocalUsername,
+      username,
+    );
+
+    _role = Role.user;
+    _userId = username;
+
     await prefs.setString(AppConstants.prefRole, _role.edition.name);
     await prefs.setString(AppConstants.prefUserId, _userId!);
+
+    LogViewerScreen.log('register: ${_role.edition.name} ($_userId)');
     notifyListeners();
     return true;
   }

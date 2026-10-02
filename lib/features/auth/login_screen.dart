@@ -1,10 +1,10 @@
+import 'dart:ui';
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../core/permissions/permission_service.dart';
 import '../../core/theme/javix_theme.dart';
-import '../../widgets/animated_jarvis_logo.dart';
-import '../../widgets/gold_card.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -13,17 +13,33 @@ class LoginScreen extends StatefulWidget {
   State<LoginScreen> createState() => _LoginScreenState();
 }
 
-class _LoginScreenState extends State<LoginScreen> {
+class _LoginScreenState extends State<LoginScreen>
+    with SingleTickerProviderStateMixin {
   final _username = TextEditingController();
+
+  late final AnimationController _animation;
+
   bool _busy = false;
+  bool _createAccount = false;
+
+  @override
+  void initState() {
+    super.initState();
+
+    _animation = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 4),
+    )..repeat(reverse: true);
+  }
 
   @override
   void dispose() {
+    _animation.dispose();
     _username.dispose();
     super.dispose();
   }
 
-  Future<void> _login() async {
+  Future<void> _submit() async {
     final username = _username.text.trim();
 
     if (username.isEmpty) {
@@ -34,10 +50,22 @@ class _LoginScreenState extends State<LoginScreen> {
     setState(() => _busy = true);
 
     try {
-      await context.read<PermissionService>().login(userId: username);
+      final auth = context.read<PermissionService>();
+
+      if (_createAccount) {
+        await auth.register(
+          email: username,
+          password: '',
+          displayName: username,
+        );
+      } else {
+        await auth.login(userId: username);
+      }
     } catch (e) {
       if (mounted) {
-        _toast(e.toString().replaceFirst('Bad state: ', ''));
+        _toast(
+          e.toString().replaceFirst('Bad state: ', ''),
+        );
       }
     } finally {
       if (mounted) {
@@ -55,118 +83,239 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: SafeArea(
-        child: Stack(
-          children: [
-            Positioned(
-              top: -120,
-              right: -80,
-              child: _glow(260),
+      backgroundColor: Colors.black,
+      body: Stack(
+        fit: StackFit.expand,
+        children: [
+          Image.asset(
+            'assets/images/jarvis_login.jpg',
+            fit: BoxFit.cover,
+          ),
+
+          Container(
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [
+                  Color(0x55000000),
+                  Color(0x99000000),
+                  Color(0xDD000000),
+                ],
+              ),
             ),
-            Positioned(
-              bottom: -140,
-              left: -100,
-              child: _glow(300),
-            ),
-            Center(
+          ),
+
+          SafeArea(
+            child: Center(
               child: SingleChildScrollView(
-                padding: const EdgeInsets.all(24),
-                child: Column(
-                  children: [
-                    const AnimatedJarvisLogo(),
-                    const SizedBox(height: 26),
-                    GoldCard(
-                      child: Column(
-                        children: [
-                          const Align(
-                            alignment: Alignment.centerRight,
-                            child: Text(
-                              'ابدأ جلستك',
-                              style: TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ),
-                          const SizedBox(height: 18),
-                          TextField(
-                            controller: _username,
-                            textAlign: TextAlign.right,
-                            textInputAction: TextInputAction.done,
-                            onSubmitted: (_) {
-                              if (!_busy) _login();
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 28,
+                  vertical: 24,
+                ),
+                child: AnimatedBuilder(
+                  animation: _animation,
+                  builder: (context, child) {
+                    final glow = 0.35 + (_animation.value * 0.35);
+
+                    return Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Transform.scale(
+                          scale: 1.0 + (_animation.value * 0.025),
+                          child: ShaderMask(
+                            shaderCallback: (bounds) {
+                              return const LinearGradient(
+                                colors: [
+                                  Color(0xFFFFE7A0),
+                                  Color(0xFFD6A83D),
+                                  Color(0xFFFFF1B8),
+                                  Color(0xFF9C6B16),
+                                ],
+                              ).createShader(bounds);
                             },
-                            decoration: const InputDecoration(
-                              prefixIcon: Icon(
-                                Icons.person_outline,
-                                color: JavixColors.gold,
+                            child: Text(
+                              'JARVIS',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 54,
+                                fontWeight: FontWeight.w800,
+                                letterSpacing: 8,
+                                shadows: [
+                                  Shadow(
+                                    color: JavixColors.gold.withValues(
+                                      alpha: glow,
+                                    ),
+                                    blurRadius: 28,
+                                  ),
+                                ],
                               ),
-                              labelText: 'اسم المستخدم',
-                              hintText: 'أدخل اسم المستخدم',
                             ),
                           ),
-                          const SizedBox(height: 18),
-                          SizedBox(
-                            width: double.infinity,
-                            child: FilledButton(
-                              onPressed: _busy ? null : _login,
-                              style: FilledButton.styleFrom(
-                                backgroundColor: JavixColors.gold,
-                                foregroundColor: Colors.black,
-                                padding: const EdgeInsets.all(15),
+                        ),
+
+                        const SizedBox(height: 4),
+
+                        const Text(
+                          'YOUR AI ASSISTANT',
+                          style: TextStyle(
+                            color: Color(0xFFD8D0C0),
+                            fontSize: 11,
+                            letterSpacing: 5,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+
+                        const SizedBox(height: 48),
+
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(22),
+                          child: BackdropFilter(
+                            filter: ImageFilter.blur(
+                              sigmaX: 14,
+                              sigmaY: 14,
+                            ),
+                            child: Container(
+                              padding: const EdgeInsets.all(22),
+                              decoration: BoxDecoration(
+                                color: Colors.black.withValues(alpha: .48),
+                                borderRadius: BorderRadius.circular(22),
+                                border: Border.all(
+                                  color: JavixColors.gold.withValues(
+                                    alpha: .32,
+                                  ),
+                                ),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: JavixColors.gold.withValues(
+                                      alpha: glow * .16,
+                                    ),
+                                    blurRadius: 30,
+                                  ),
+                                ],
                               ),
-                              child: _busy
-                                  ? const SizedBox(
-                                      width: 22,
-                                      height: 22,
-                                      child: CircularProgressIndicator(
-                                        strokeWidth: 2,
-                                        color: Colors.black,
+                              child: Column(
+                                children: [
+                                  TextField(
+                                    controller: _username,
+                                    enabled: !_busy,
+                                    textAlign: TextAlign.right,
+                                    textInputAction: TextInputAction.done,
+                                    onSubmitted: (_) {
+                                      if (!_busy) _submit();
+                                    },
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                    ),
+                                    decoration: InputDecoration(
+                                      labelText: 'اسم المستخدم',
+                                      labelStyle: const TextStyle(
+                                        color: Color(0xFFD5C28D),
                                       ),
-                                    )
-                                  : const Text(
-                                      'دخول إلى JARVIS',
-                                      style: TextStyle(
-                                        fontWeight: FontWeight.w700,
+                                      hintText: 'Username',
+                                      hintStyle: const TextStyle(
+                                        color: Colors.white38,
+                                      ),
+                                      prefixIcon: const Icon(
+                                        Icons.person_outline,
+                                        color: JavixColors.gold,
+                                      ),
+                                      filled: true,
+                                      fillColor: Colors.white.withValues(
+                                        alpha: .06,
+                                      ),
+                                      border: OutlineInputBorder(
+                                        borderRadius:
+                                            BorderRadius.circular(14),
+                                        borderSide: BorderSide.none,
                                       ),
                                     ),
+                                  ),
+
+                                  const SizedBox(height: 16),
+
+                                  SizedBox(
+                                    width: double.infinity,
+                                    height: 52,
+                                    child: FilledButton(
+                                      onPressed:
+                                          _busy ? null : _submit,
+                                      style: FilledButton.styleFrom(
+                                        backgroundColor:
+                                            JavixColors.gold,
+                                        foregroundColor: Colors.black,
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius:
+                                              BorderRadius.circular(14),
+                                        ),
+                                      ),
+                                      child: _busy
+                                          ? const SizedBox(
+                                              width: 22,
+                                              height: 22,
+                                              child:
+                                                  CircularProgressIndicator(
+                                                strokeWidth: 2,
+                                                color: Colors.black,
+                                              ),
+                                            )
+                                          : Text(
+                                              _createAccount
+                                                  ? 'إنشاء الحساب'
+                                                  : 'دخول إلى JARVIS',
+                                              style: const TextStyle(
+                                                fontWeight:
+                                                    FontWeight.w800,
+                                                fontSize: 15,
+                                              ),
+                                            ),
+                                    ),
+                                  ),
+
+                                  const SizedBox(height: 10),
+
+                                  TextButton(
+                                    onPressed: _busy
+                                        ? null
+                                        : () {
+                                            setState(() {
+                                              _createAccount =
+                                                  !_createAccount;
+                                            });
+                                          },
+                                    child: Text(
+                                      _createAccount
+                                          ? 'لديك حساب؟ تسجيل الدخول'
+                                          : 'إنشاء حساب جديد',
+                                      style: const TextStyle(
+                                        color: Color(0xFFE2C56A),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ),
                           ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 14),
-                    const Text(
-                      'نسخة تجريبية محلية — سجّل الدخول باسم المستخدم',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        color: JavixColors.textTertiary,
-                        fontSize: 11,
-                        height: 1.5,
-                      ),
-                    ),
-                  ],
+                        ),
+
+                        const SizedBox(height: 18),
+
+                        const Text(
+                          'LOCAL MODE • NO SERVER CONNECTION',
+                          style: TextStyle(
+                            color: Colors.white38,
+                            fontSize: 9,
+                            letterSpacing: 2,
+                          ),
+                        ),
+                      ],
+                    );
+                  },
                 ),
               ),
             ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _glow(double size) {
-    return Container(
-      width: size,
-      height: size,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        gradient: RadialGradient(
-          colors: [
-            JavixColors.gold.withValues(alpha: .08),
-            Colors.transparent,
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
