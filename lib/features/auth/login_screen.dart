@@ -112,11 +112,18 @@ class _LoginScreenState extends State<LoginScreen> {
       body: Stack(
         fit: StackFit.expand,
         children: [
-          Image.asset(
-            'assets/images/jarvis_login.jpg',
-            fit: BoxFit.cover,
-            errorBuilder: (_, __, ___) =>
-                const ColoredBox(color: Color(0xFF05070B)),
+          const DecoratedBox(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  Color(0xFF10151D),
+                  Color(0xFF05070B),
+                  Color(0xFF000000),
+                ],
+              ),
+            ),
           ),
           Container(
             decoration: const BoxDecoration(
