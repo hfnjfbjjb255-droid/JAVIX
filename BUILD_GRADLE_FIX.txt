@@ -1,0 +1,10 @@
+JAVIX BUILD FIX
+
+The Android app build.gradle was rebuilt using Flutter's modern Plugin DSL.
+The GitHub workflow creates the Gradle wrapper in an isolated temporary project,
+so the app's build.gradle is NOT evaluated while generating the wrapper.
+
+IMPORTANT:
+If GitHub Actions still shows a step named "Prepare Gradle wrapper", it is running
+the OLD workflow from the repository. The corrected workflow in this archive is
+.github/workflows/build-apk.yml and must replace the old workflow in GitHub.

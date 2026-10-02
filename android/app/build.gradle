@@ -1,0 +1,53 @@
+plugins {
+    id "com.android.application"
+    id "org.jetbrains.kotlin.android"
+    id "dev.flutter.flutter-gradle-plugin"
+}
+
+// Compatibility guard: Gradle may configure this module while generating
+// the wrapper. In that phase Flutter's plugin may not yet expose the flutter
+// extension. The real Flutter plugin supplies the extension during an actual
+// Flutter build; this guard only prevents wrapper generation from crashing.
+if (project.extensions.findByName("flutter") == null) {
+    ext.flutter = { Closure ignored -> }
+}
+
+android {
+    namespace "com.javix.app"
+    compileSdk = flutter.compileSdkVersion
+    ndkVersion = flutter.ndkVersion
+
+    defaultConfig {
+        applicationId "com.javix.app"
+        minSdk = 21
+        targetSdk = flutter.targetSdkVersion
+        versionCode = flutter.versionCode
+        versionName = flutter.versionName
+    }
+
+    compileOptions {
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
+        coreLibraryDesugaringEnabled true
+    }
+
+    kotlinOptions {
+        jvmTarget = "17"
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            shrinkResources false
+            signingConfig signingConfigs.debug
+        }
+    }
+}
+
+flutter {
+    source "../.."
+}
+
+dependencies {
+    coreLibraryDesugaring "com.android.tools:desugar_jdk_libs:2.1.5"
+}

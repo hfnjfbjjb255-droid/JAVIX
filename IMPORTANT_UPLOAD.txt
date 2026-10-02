@@ -1,0 +1,5 @@
+IMPORTANT:
+The GitHub screenshot showing "Prepare Gradle wrapper" is from the OLD workflow.
+Uploading this ZIP as a single file does NOT replace .github/workflows/build-apk.yml on GitHub.
+To use this fixed build, extract/replace the project contents so the included .github/workflows/build-apk.yml replaces the old one.
+The new workflow creates the Gradle wrapper in an isolated folder, so Gradle never evaluates the broken :app project while generating the wrapper.
