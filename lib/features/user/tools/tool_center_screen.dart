@@ -1,4 +1,4 @@
-import '../../widgets/gold_card.dart';
+import '../../../widgets/gold_card.dart';
 import 'dart:convert';
 import 'dart:io';
 

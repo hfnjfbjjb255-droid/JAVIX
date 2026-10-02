@@ -1,4 +1,4 @@
-import '../../widgets/gold_card.dart';
+import '../../../widgets/gold_card.dart';
 import 'package:flutter/material.dart';
 
 import '../../../core/platform/jarvis_platform.dart';

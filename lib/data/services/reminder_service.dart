@@ -123,6 +123,7 @@ class ReminderService extends ChangeNotifier {
       'الموعد ${r.dueAt.hour}:${r.dueAt.minute.toString().padLeft(2, '0')}',
       scheduled,
       details,
+        uiLocalNotificationDateInterpretation: UILocalNotificationDateInterpretation.absoluteTime,
       androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
       matchDateTimeComponents:
           r.repeatDaily ? DateTimeComponents.time : null,

@@ -68,5 +68,4 @@ class _AiGatewayScreenState extends State<AiGatewayScreen> {
       }, icon: const Icon(Icons.save, color: Colors.black), label: const Text('حفظ', style: TextStyle(color: Colors.black)), style: FilledButton.styleFrom(backgroundColor: JavixColors.gold, padding: const EdgeInsets.all(14))),
     ],
   );
-  );
 }
