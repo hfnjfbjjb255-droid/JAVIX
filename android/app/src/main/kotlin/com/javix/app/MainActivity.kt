@@ -7,13 +7,16 @@ import android.location.Location
 import android.location.LocationManager
 import android.os.BatteryManager
 import android.os.Build
+import android.os.CancellationSignal
 import io.flutter.embedding.android.FlutterActivity
+import java.util.concurrent.Executors
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
 
 class MainActivity : FlutterActivity() {
     private val channelName = "jarvis/native"
     private val permissionRequestCode = 7107
+    private val locationExecutor = Executors.newSingleThreadExecutor()
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
@@ -26,7 +29,7 @@ class MainActivity : FlutterActivity() {
                     }
                     "permissionStatus" -> result.success(permissionStatus())
                     "batteryPercent" -> result.success(batteryPercent())
-                    "location" -> result.success(lastKnownLocation())
+                    "location" -> resolveLocation(result)
                     else -> result.notImplemented()
                 }
             }
@@ -92,12 +95,35 @@ class MainActivity : FlutterActivity() {
         return if (value in 0..100) value else null
     }
 
-    private fun lastKnownLocation(): Map<String, Double>? {
+    private fun resolveLocation(result: MethodChannel.Result) {
         if (Build.VERSION.SDK_INT >= 23 && checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED &&
             checkSelfPermission(Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-            return null
+            result.success(null)
+            return
         }
         val manager = getSystemService(Context.LOCATION_SERVICE) as LocationManager
+        if (Build.VERSION.SDK_INT >= 30) {
+            try {
+                val provider = when {
+                    manager.isProviderEnabled(LocationManager.GPS_PROVIDER) -> LocationManager.GPS_PROVIDER
+                    manager.isProviderEnabled(LocationManager.NETWORK_PROVIDER) -> LocationManager.NETWORK_PROVIDER
+                    else -> null
+                }
+                if (provider != null) {
+                    manager.getCurrentLocation(provider, CancellationSignal(), locationExecutor) { location ->
+                        result.success(location?.let { mapOf("latitude" to it.latitude, "longitude" to it.longitude) })
+                    }
+                    return
+                }
+            } catch (_: SecurityException) {
+                result.success(null)
+                return
+            }
+        }
+        result.success(lastKnownLocation(manager))
+    }
+
+    private fun lastKnownLocation(manager: LocationManager): Map<String, Double>? {
         val providers = listOf(LocationManager.GPS_PROVIDER, LocationManager.NETWORK_PROVIDER)
         var best: Location? = null
         for (provider in providers) {
@@ -109,5 +135,10 @@ class MainActivity : FlutterActivity() {
             }
         }
         return best?.let { mapOf("latitude" to it.latitude, "longitude" to it.longitude) }
+    }
+
+    override fun onDestroy() {
+        locationExecutor.shutdownNow()
+        super.onDestroy()
     }
 }

@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '../../../widgets/gold_card.dart';
 
 import '../../../core/platform/jarvis_platform.dart';
 import '../../../core/theme/javix_theme.dart';

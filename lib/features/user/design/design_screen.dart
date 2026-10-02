@@ -1,13 +1,14 @@
 import 'package:flutter/material.dart';
-import '../../../widgets/gold_card.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
 import '../../../core/theme/javix_theme.dart';
+import '../../../core/permissions/permission_service.dart';
 import '../../../data/services/ai_service.dart';
 
 class DesignScreen extends StatefulWidget {
-  const DesignScreen({super.key});
+  final bool initialVideo;
+  const DesignScreen({super.key, this.initialVideo = false});
 
   @override
   State<DesignScreen> createState() => _DesignScreenState();
@@ -19,6 +20,12 @@ class _DesignScreenState extends State<DesignScreen> {
   String? _rawResult;
   bool _busy = false;
   bool _video = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _video = widget.initialVideo;
+  }
 
   @override
   void dispose() {
@@ -39,7 +46,8 @@ class _DesignScreenState extends State<DesignScreen> {
     });
     try {
       final ai = context.read<AiService>();
-      final result = _video ? await ai.generateVideo(prompt) : await ai.generateImage(prompt);
+      final developer = context.read<PermissionService>().isDeveloper;
+      final result = _video ? await ai.generateVideo(prompt, developer: developer) : await ai.generateImage(prompt, developer: developer);
       if (!mounted) return;
       setState(() {
         if (result.startsWith('http')) {
@@ -73,7 +81,7 @@ class _DesignScreenState extends State<DesignScreen> {
                 Expanded(child: Text('التصميم بالذكاء الاصطناعي', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w600))),
               ]),
               const SizedBox(height: 8),
-              const Text('اكتب فكرتك، وسيطلب JARVIS من بوابة الذكاء الاصطناعي إنشاء صورة أو فيديو مدته 10 ثوانٍ.', style: TextStyle(color: JavixColors.textSecondary, height: 1.5)),
+              const Text('اكتب فكرتك، وسيطلب JARVIS من خادم الذكاء الاصطناعي إنشاء صورة أو فيديو مدته 10 ثوانٍ.', style: TextStyle(color: JavixColors.textSecondary, height: 1.5)),
               const SizedBox(height: 14),
               TextField(
                 controller: _prompt,
@@ -94,6 +102,13 @@ class _DesignScreenState extends State<DesignScreen> {
                 onSelectionChanged: (s) => setState(() => _video = s.first),
               ),
               const SizedBox(height: 14),
+              Text(
+                context.watch<PermissionService>().isDeveloper
+                    ? 'المتاح اليوم: غير محدود (مطور)'
+                    : 'المتاح اليوم: ${ai.imagesRemaining} صور / ${ai.videosRemaining} فيديوهات',
+                style: const TextStyle(color: JavixColors.textSecondary, fontSize: 12),
+              ),
+              const SizedBox(height: 10),
               SizedBox(
                 width: double.infinity,
                 child: FilledButton.icon(
@@ -105,7 +120,7 @@ class _DesignScreenState extends State<DesignScreen> {
               ),
               if (!ai.configured) ...[
                 const SizedBox(height: 12),
-                const Text('بوابة AI غير مهيأة. من لوحة المطور أضف رابط مزود الذكاء الاصطناعي قبل التوليد.', style: TextStyle(color: JavixColors.danger, fontSize: 12)),
+                const Text('خادم JARVIS غير مهيأ. ابنِ التطبيق مع JARVIS_BACKEND_URL قبل التوليد.', style: TextStyle(color: JavixColors.danger, fontSize: 12)),
               ],
             ]),
           ),

@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
-import '../../../widgets/gold_card.dart';
 import 'package:provider/provider.dart';
 
 import '../../../core/theme/javix_theme.dart';
 import '../../../data/services/ai_service.dart';
+import '../../../widgets/animated_jarvis_text.dart';
+import '../../../widgets/gold_card.dart';
 
 class AiScreen extends StatefulWidget {
-  const AiScreen({super.key});
+  final String? initialPrompt;
+  const AiScreen({super.key, this.initialPrompt});
 
   @override
   State<AiScreen> createState() => _AiScreenState();
@@ -14,12 +16,40 @@ class AiScreen extends StatefulWidget {
 
 class _AiScreenState extends State<AiScreen> {
   final _prompt = TextEditingController();
-  final List<String> _messages = [];
+  final List<({bool user, String text})> _messages = [];
+  bool _busy = false;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.initialPrompt != null) _prompt.text = widget.initialPrompt!;
+  }
 
   @override
   void dispose() {
     _prompt.dispose();
     super.dispose();
+  }
+
+  Future<void> _send() async {
+    final text = _prompt.text.trim();
+    if (text.isEmpty || _busy) return;
+    final ai = context.read<AiService>();
+    setState(() {
+      _messages.add((user: true, text: text));
+      _prompt.clear();
+      _busy = true;
+    });
+    try {
+      final reply = await ai.chat(text);
+      if (!mounted) return;
+      setState(() => _messages.add((user: false, text: reply)));
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _messages.add((user: false, text: e.toString().replaceFirst('Bad state: ', ''))));
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
   }
 
   @override
@@ -28,22 +58,39 @@ class _AiScreenState extends State<AiScreen> {
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
-        GoldCard(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          const Row(children: [Icon(Icons.psychology_outlined, color: JavixColors.gold), SizedBox(width: 10), Text('JARVIS AI', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600))]),
-          const SizedBox(height: 8),
-          Text(ai.configured ? 'متصل ببوابة الذكاء الاصطناعي' : 'غير متصل ببوابة AI بعد', style: TextStyle(color: ai.configured ? JavixColors.success : JavixColors.textSecondary)),
+        GoldCard(child: Row(children: [
+          const Icon(Icons.psychology_outlined, color: JavixColors.gold),
+          const SizedBox(width: 10),
+          const AnimatedJarvisText(fontSize: 18, letterSpacing: 3, compact: true),
+          const Spacer(),
+          Container(width: 9, height: 9, decoration: BoxDecoration(shape: BoxShape.circle, color: ai.configured ? JavixColors.success : JavixColors.danger)),
         ])),
-        const SizedBox(height: 16),
-        ..._messages.map((m) => Align(alignment: Alignment.centerRight, child: Container(margin: const EdgeInsets.only(bottom: 8), padding: const EdgeInsets.all(12), decoration: BoxDecoration(color: JavixColors.surfaceLight, borderRadius: BorderRadius.circular(12)), child: Text(m)))),
+        const SizedBox(height: 10),
+        Text(ai.serverMode ? 'متصل بخادم JARVIS الآمن' : (ai.configured ? 'متصل ببوابة AI المحلية' : 'خادم JARVIS غير مهيأ بعد'), style: TextStyle(color: ai.configured ? JavixColors.success : JavixColors.textSecondary)),
+        const SizedBox(height: 14),
+        if (_messages.isEmpty)
+          const GoldCard(child: Text('اكتب أي سؤال أو أمر. JARVIS سيرسل النص إلى بوابة الذكاء الاصطناعي ويرجع لك الجواب الحقيقي.', style: TextStyle(color: JavixColors.textSecondary, height: 1.6)))
+        else
+          ..._messages.map((m) => Align(
+            alignment: m.user ? Alignment.centerLeft : Alignment.centerRight,
+            child: Container(
+              constraints: const BoxConstraints(maxWidth: 340),
+              margin: const EdgeInsets.only(bottom: 9),
+              padding: const EdgeInsets.all(13),
+              decoration: BoxDecoration(
+                color: m.user ? JavixColors.surfaceLight : const Color(0x1FD4A24E),
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: m.user ? JavixColors.border : JavixColors.goldDim),
+              ),
+              child: Text(m.text, textAlign: TextAlign.right, style: const TextStyle(height: 1.5)),
+            ),
+          )),
+        if (_busy) const Padding(padding: EdgeInsets.all(8), child: Row(children: [SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: JavixColors.gold)), SizedBox(width: 10), Text('JARVIS يفكر...')])) ,
+        const SizedBox(height: 8),
         GoldCard(child: Column(children: [
-          TextField(controller: _prompt, maxLines: 4, textAlign: TextAlign.right, decoration: const InputDecoration(hintText: 'اكتب أمرك لـ JARVIS...')),
+          TextField(controller: _prompt, maxLines: 4, textAlign: TextAlign.right, onSubmitted: (_) => _send(), decoration: const InputDecoration(hintText: 'اكتب أمرك لـ JARVIS...')),
           const SizedBox(height: 10),
-          Align(alignment: Alignment.centerLeft, child: FilledButton.icon(onPressed: () {
-            final text = _prompt.text.trim();
-            if (text.isEmpty) return;
-            setState(() { _messages.insert(0, 'أنت: $text'); _prompt.clear(); });
-            ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(ai.configured ? 'الأمر جاهز للإرسال إلى بوابة AI.' : 'فعّل بوابة AI من لوحة المطور أولاً.')));
-          }, icon: const Icon(Icons.send, color: Colors.black), label: const Text('إرسال', style: TextStyle(color: Colors.black)), style: FilledButton.styleFrom(backgroundColor: JavixColors.gold)))
+          SizedBox(width: double.infinity, child: FilledButton.icon(onPressed: _busy || !ai.configured ? null : _send, icon: const Icon(Icons.send, color: Colors.black), label: const Text('إرسال إلى JARVIS', style: TextStyle(color: Colors.black)), style: FilledButton.styleFrom(backgroundColor: JavixColors.gold, padding: const EdgeInsets.all(14)))),
         ])),
       ],
     );

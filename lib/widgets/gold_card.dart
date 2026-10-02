@@ -14,9 +14,19 @@ class GoldCard extends StatelessWidget {
     final card = Container(
       padding: padding,
       decoration: BoxDecoration(
-        color: JavixColors.surface,
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            JavixColors.surfaceLight.withValues(alpha: .72),
+            JavixColors.surface.withValues(alpha: .94),
+          ],
+        ),
         borderRadius: BorderRadius.circular(14),
         border: Border.all(color: JavixColors.border),
+        boxShadow: [
+          BoxShadow(color: JavixColors.gold.withValues(alpha: .025), blurRadius: 18, spreadRadius: 1),
+        ],
       ),
       child: child,
     );

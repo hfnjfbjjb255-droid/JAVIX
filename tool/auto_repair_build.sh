@@ -104,7 +104,7 @@ for attempt in $(seq 1 "$MAX_ATTEMPTS"); do
   fi
 
   set +e
-  flutter build apk --release --target-platform android-arm64 --no-tree-shake-icons --dart-define=JAVIX_DEV_CODE=JAVIX-DEV-2026 --dart-define=JAVIX_DEVELOPER_BUILD=true 2>&1 | tee "$LOG"
+  flutter build apk --release --target-platform android-arm64 --no-tree-shake-icons --dart-define=JAVIX_DEV_CODE=JAVIX-DEV-2026 --dart-define=JAVIX_DEVELOPER_BUILD=true --dart-define=JARVIS_BACKEND_URL=${JARVIS_BACKEND_URL:-} 2>&1 | tee "$LOG"
   B=${PIPESTATUS[0]}
   set -e
   if [ "$B" -eq 0 ]; then

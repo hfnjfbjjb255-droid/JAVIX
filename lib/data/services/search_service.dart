@@ -8,6 +8,11 @@ class SearchService extends ChangeNotifier {
 
   static const int maxEntries = 50;
 
+  void clear() {
+    _history.clear();
+    notifyListeners();
+  }
+
   void log(String command, {String kind = 'voice'}) {
     _history.insert(0, (at: DateTime.now(), command: command, kind: kind));
     if (_history.length > maxEntries) _history.removeLast();

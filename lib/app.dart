@@ -11,6 +11,9 @@ import 'data/services/reminder_service.dart';
 import 'data/services/search_service.dart';
 import 'data/services/speech_service.dart';
 import 'data/services/vision_service.dart';
+import 'data/services/backend_service.dart';
+import 'data/services/subscription_service.dart';
+import 'data/services/oauth_service.dart';
 import 'features/auth/login_screen.dart';
 import 'features/user/home/user_home_screen.dart';
 import 'features/developer/dev_dashboard_screen.dart';
@@ -20,15 +23,19 @@ import 'features/developer/logs/log_viewer_screen.dart';
 /// each edition gets a completely separate navigation tree.
 class JavixApp extends StatelessWidget {
   const JavixApp({super.key});
+  static bool _oauthStarted = false;
 
   @override
   Widget build(BuildContext context) {
+    if (!_oauthStarted) { _oauthStarted = true; OAuthService.start(); }
     return MultiProvider(
       providers: [
+        ChangeNotifierProvider.value(value: BackendService.instance..load()),
         ChangeNotifierProvider(create: (_) => PermissionService()..restore()),
         ChangeNotifierProvider(create: (_) => DeviceService()),
         ChangeNotifierProvider(lazy: false, create: (_) => DeviceStatusService()),
         ChangeNotifierProvider(lazy: false, create: (_) => AiService()..load()),
+        ChangeNotifierProvider(lazy: false, create: (_) => SubscriptionService()..init()),
         ChangeNotifierProvider(lazy: false, create: (_) => ReminderService()..init()),
         ChangeNotifierProvider(create: (_) => SearchService()),
         ChangeNotifierProvider(lazy: false, create: (_) => SpeechService()..init()),

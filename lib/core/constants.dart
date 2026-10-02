@@ -22,4 +22,13 @@ class AppConstants {
 
   static const String mqttDefaultHost = '192.168.1.10';
   static const int mqttDefaultPort = 1883;
+
+  // Production builds should point this at the JARVIS backend. The backend
+  // owns secrets, authentication, usage limits, AI proxying and billing.
+  static const String backendUrl =
+      String.fromEnvironment('JARVIS_BACKEND_URL', defaultValue: '');
+
+  static const String monthlyProductId = 'jarvis_pro_monthly';
+  static const String quarterlyProductId = 'jarvis_pro_3months';
+  static const String yearlyProductId = 'jarvis_pro_yearly';
 }

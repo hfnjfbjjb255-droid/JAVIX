@@ -5,6 +5,7 @@ import '../../core/constants.dart';
 import '../../core/platform/jarvis_platform.dart';
 import '../../core/permissions/role.dart';
 import '../../features/developer/logs/log_viewer_screen.dart';
+import '../../data/services/backend_service.dart';
 
 /// Session-level auth + role resolution.
 /// In production, replace [login] with your backend auth (Firebase Auth, JWT...).
@@ -37,25 +38,56 @@ class PermissionService extends ChangeNotifier {
     final stored = prefs.getString(AppConstants.prefRole);
     final savedId = prefs.getString(AppConstants.prefUserId);
     if (stored != null && savedId != null) {
-      _role = (stored == 'developer' && AppConstants.developerBuild) ? Role.developer : Role.user;
-      _userId = savedId;
+      if (BackendService.instance.configured) {
+        if (BackendService.instance.authenticated) {
+          try {
+            final result = await BackendService.instance.get('/auth/me');
+            final account = result['user'] is Map ? Map<String, dynamic>.from(result['user']) : <String, dynamic>{};
+            _role = account['role']?.toString() == 'developer' ? Role.developer : Role.user;
+            _userId = (account['id'] ?? account['email'] ?? account['phone'] ?? savedId).toString();
+          } catch (_) {
+            await BackendService.instance.setToken('');
+          }
+        }
+      } else {
+        _role = (stored == 'developer' && AppConstants.developerBuild) ? Role.developer : Role.user;
+        _userId = savedId;
+      }
     }
     _restored = true;
     notifyListeners();
   }
 
-  /// Demo login: developers authenticate with a special code.
-  Future<bool> login({required String userId, String? devCode}) async {
-    // In production: call your backend and verify a signed token instead.
-    if (AppConstants.developerBuild &&
+  /// Real auth is delegated to the JARVIS backend when configured.
+  /// The local developer code remains available only for the explicit demo build.
+  Future<bool> login({String userId = '', String? devCode, String? password, String? phone, String? otp, String provider = 'password'}) async {
+    final normalizedCode = devCode?.trim() ?? '';
+    final developerLogin = AppConstants.developerBuild &&
         AppConstants.devAccessCode.isNotEmpty &&
-        devCode != null &&
-        devCode.trim() == AppConstants.devAccessCode) {
+        normalizedCode.isNotEmpty &&
+        normalizedCode == AppConstants.devAccessCode;
+    if (developerLogin) {
       _role = Role.developer;
+      _userId = 'Developer';
+    } else if (BackendService.instance.configured) {
+      final body = <String, dynamic>{
+        'provider': provider,
+        'identifier': userId.trim(),
+        'password': password ?? '',
+        'phone': phone ?? '',
+        'otp': otp ?? '',
+      };
+      final result = await BackendService.instance.post('/auth/login', body, auth: false);
+      final token = result['token']?.toString() ?? '';
+      final account = result['user'] is Map ? Map<String, dynamic>.from(result['user']) : <String, dynamic>{};
+      if (token.isEmpty) throw StateError('لم يرجع الخادم جلسة دخول صالحة.');
+      await BackendService.instance.setToken(token);
+      final role = account['role']?.toString() ?? 'user';
+      _role = role == 'developer' ? Role.developer : Role.user;
+      _userId = (account['id'] ?? account['email'] ?? account['phone'] ?? userId).toString();
     } else {
-      _role = Role.user;
+      throw StateError('الحسابات الحقيقية تحتاج JARVIS_BACKEND_URL.');
     }
-    _userId = userId.trim();
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(AppConstants.prefRole, _role.edition.name);
     await prefs.setString(AppConstants.prefUserId, _userId!);
@@ -64,10 +96,36 @@ class PermissionService extends ChangeNotifier {
     return true;
   }
 
+  Future<bool> register({required String email, required String password, String? displayName}) async {
+    if (!BackendService.instance.configured) throw StateError('الخادم غير مهيأ.');
+    final result = await BackendService.instance.post('/auth/register', {
+      'email': email.trim(), 'password': password, 'displayName': displayName?.trim() ?? '',
+    }, auth: false);
+    final token = result['token']?.toString() ?? '';
+    if (token.isEmpty) throw StateError('فشل إنشاء الحساب.');
+    await BackendService.instance.setToken(token);
+    final account = result['user'] is Map ? Map<String, dynamic>.from(result['user']) : <String, dynamic>{};
+    _role = Role.user;
+    _userId = (account['id'] ?? account['email'] ?? email).toString();
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(AppConstants.prefRole, _role.edition.name);
+    await prefs.setString(AppConstants.prefUserId, _userId!);
+    notifyListeners();
+    return true;
+  }
+
+  Future<void> requestPhoneOtp(String phone) async {
+    if (!BackendService.instance.configured) throw StateError('الخادم غير مهيأ.');
+    await BackendService.instance.post('/auth/phone/request', {'phone': phone.trim()}, auth: false);
+  }
+
   Future<void> logout() async {
     LogViewerScreen.log('logout: $_userId');
     _role = Role.user;
     _userId = null;
+    if (BackendService.instance.authenticated) {
+      await BackendService.instance.setToken('');
+    }
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(AppConstants.prefRole);
     await prefs.remove(AppConstants.prefUserId);
