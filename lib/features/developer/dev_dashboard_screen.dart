@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../core/localization/strings_ar.dart';
+import "../../core/permissions/role.dart";
 import '../../core/permissions/permission_service.dart';
 import '../../core/theme/javix_theme.dart';
 import '../../widgets/gold_card.dart';

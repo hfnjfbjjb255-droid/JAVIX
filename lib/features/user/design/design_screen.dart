@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
+import "../../../widgets/gold_card.dart";
 import '../../../core/theme/javix_theme.dart';
 import '../../../core/permissions/permission_service.dart';
 import '../../../data/services/ai_service.dart';
